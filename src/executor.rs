@@ -5,7 +5,7 @@ use std::time::{Duration, SystemTime, UNIX_EPOCH};
 use crate::component::Component;
 
 #[derive(Default)]
-pub struct Executer<'a> {
+pub struct Executor<'a> {
     timed: BinaryHeap<Reverse<Timed>>,
     items: Vec<Item<'a>>,
 }
@@ -15,7 +15,7 @@ struct Item<'a> {
     output: String,
 }
 
-impl<'a> Executer<'a> {
+impl<'a> Executor<'a> {
     pub fn new() -> Self {
         Self::default()
     }

@@ -1,12 +1,12 @@
 use component::{CpuUsage, DiskUsage, NetworkSSID, RamUsed, Time};
-use executer::Executer;
+use executor::Executor;
 use std::time::Duration;
 
 mod component;
-mod executer;
+mod executor;
 
 fn main() {
-    Executer::new()
+    Executor::new()
         .add_static("CPU")
         .add_timed(Duration::from_secs(1), CpuUsage::new())
         .seperator()
