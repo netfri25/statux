@@ -29,6 +29,6 @@ impl Component for CpuUsage {
         let usage = self.system.global_cpu_usage();
 
         buf.clear();
-        write!(buf, "{:2.0}", usage).expect("cpu usage write error")
+        write!(buf, "{:2.0}%", usage).expect("cpu usage write error")
     }
 }
