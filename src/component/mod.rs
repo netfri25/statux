@@ -1,10 +1,12 @@
 pub mod time;
 pub mod cpu;
 pub mod memory;
+pub mod disk;
 
 pub use time::Time;
 pub use cpu::CpuUsage;
 pub use memory::RamUsed;
+pub use disk::DiskUsage;
 
 pub trait Component {
     fn update(&mut self, buf: &mut String);
