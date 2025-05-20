@@ -4,17 +4,17 @@ use sysinfo::{MemoryRefreshKind, RefreshKind, System};
 
 use super::Component;
 
-pub struct RamUsage {
+pub struct RamUsed {
     system: System,
 }
 
-impl RamUsage {
+impl RamUsed {
     pub fn new() -> Self {
         Self::default()
     }
 }
 
-impl Default for RamUsage {
+impl Default for RamUsed {
     fn default() -> Self {
         let system = System::new_with_specifics(
             RefreshKind::nothing().with_memory(MemoryRefreshKind::nothing().with_ram()),
@@ -23,7 +23,7 @@ impl Default for RamUsage {
     }
 }
 
-impl Component for RamUsage {
+impl Component for RamUsed {
     fn update(&mut self, buf: &mut String) {
         self.system
             .refresh_memory_specifics(MemoryRefreshKind::nothing().with_ram());

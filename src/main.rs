@@ -1,4 +1,4 @@
-use component::{CpuUsage, RamUsage, Time};
+use component::{CpuUsage, RamUsed, Time};
 use executer::Executer;
 use std::time::Duration;
 
@@ -10,7 +10,7 @@ fn main() {
         .add_static("CPU")
         .add_timed(Duration::from_secs(1), CpuUsage::new())
         .add_static(())
-        .add_timed(Duration::from_secs_f32(0.5), RamUsage::new())
+        .add_timed(Duration::from_secs_f32(0.5), RamUsed::new())
         .add_static(())
         .add_timed(Duration::from_secs(5), Time::new("%S"))
         .run();

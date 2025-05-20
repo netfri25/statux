@@ -4,7 +4,7 @@ pub mod memory;
 
 pub use time::Time;
 pub use cpu::CpuUsage;
-pub use memory::RamUsage;
+pub use memory::RamUsed;
 
 pub trait Component {
     fn update(&mut self, buf: &mut String);
