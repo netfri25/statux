@@ -1,4 +1,4 @@
-use component::{CpuUsage, DiskUsage, RamUsed, Time};
+use component::{CpuUsage, DiskUsage, NetworkSSID, RamUsed, Time};
 use executer::Executer;
 use std::time::Duration;
 
@@ -18,5 +18,8 @@ fn main() {
         .add_static(())
         .add_static("DISK")
         .add_timed(Duration::from_secs(30), DiskUsage::new("/"))
+        .add_static(())
+        .add_static("WIFI")
+        .add_timed(Duration::from_secs(3), NetworkSSID)
         .run();
 }
