@@ -1,4 +1,4 @@
-use component::Time;
+use component::{CpuUsage, RamUsage, Time};
 use executer::Executer;
 use std::time::Duration;
 
@@ -7,10 +7,11 @@ mod executer;
 
 fn main() {
     Executer::new()
-        .add_static("every2")
-        .add_timed(Duration::from_secs(2), Time::new("%S"))
+        .add_static("CPU")
+        .add_timed(Duration::from_secs(1), CpuUsage::new())
         .add_static(())
-        .add_static("every5")
+        .add_timed(Duration::from_secs_f32(0.5), RamUsage::new())
+        .add_static(())
         .add_timed(Duration::from_secs(5), Time::new("%S"))
         .run();
 }
