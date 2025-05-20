@@ -42,6 +42,10 @@ impl<'a> Executer<'a> {
         self
     }
 
+    pub fn seperator(&mut self) -> &mut Self {
+        self.add_static(())
+    }
+
     /// adds a component that only updates once
     pub fn add_static(&mut self, mut component: impl Component) -> &mut Self {
         let mut output = String::new();
