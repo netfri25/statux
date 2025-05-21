@@ -34,11 +34,11 @@ impl Component for CpuUsage {
         let prev_total = prev.idle + prev.active;
         let total_diff = current_total - prev_total;
         let active_diff = current.active - prev.active;
-        let usage = 100. * active_diff as f32 / total_diff as f32;
+        let usage = 100 * active_diff / total_diff;
 
         self.prev = Some(current);
         buf.clear();
-        write!(buf, "{:4.1}", usage).expect("cpu usage write error");
+        write!(buf, "{:2}", usage).expect("cpu usage write error");
     }
 }
 
