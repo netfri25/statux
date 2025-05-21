@@ -19,7 +19,7 @@ impl DiskUsage {
 }
 
 impl Component for DiskUsage {
-    fn update(&mut self, buf: &mut String) {
+    async fn update(&mut self, buf: &mut String) {
         self.disks
             .refresh_specifics(true, DiskRefreshKind::nothing().with_storage());
 

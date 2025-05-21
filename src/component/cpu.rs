@@ -24,7 +24,7 @@ impl Default for CpuUsage {
 }
 
 impl Component for CpuUsage {
-    fn update(&mut self, buf: &mut String) {
+    async fn update(&mut self, buf: &mut String) {
         self.system.refresh_cpu_usage();
         let usage = self.system.global_cpu_usage();
 

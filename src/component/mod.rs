@@ -4,18 +4,23 @@ pub mod memory;
 pub mod disk;
 pub mod network;
 
+use std::time::Duration;
+
 pub use time::Time;
 pub use cpu::CpuUsage;
 pub use memory::RamUsed;
 pub use disk::DiskUsage;
 pub use network::NetworkSSID;
 
+pub const EMPTY_OUTPUT: &str = "---";
+pub const MIN_UPDATE_TIME: Duration = Duration::from_millis(100);
+
 pub trait Component {
-    fn update(&mut self, buf: &mut String);
+    fn update(&mut self, buf: &mut String) -> impl Future<Output = ()> + Send;
 }
 
 impl Component for &str {
-    fn update(&mut self, buf: &mut String) {
+    async fn update(&mut self, buf: &mut String) {
         buf.clear();
         buf.push_str(self)
     }
@@ -23,5 +28,5 @@ impl Component for &str {
 
 // `do nothing` component. can be used as a seperator
 impl Component for () {
-    fn update(&mut self, _: &mut String) {}
+    async fn update(&mut self, _: &mut String) {}
 }

@@ -1,25 +1,25 @@
 use std::fmt::Write;
-use std::process::Command;
+use tokio::process::Command;
 
-use super::Component;
+use super::{Component, EMPTY_OUTPUT};
 
 pub struct NetworkSSID;
 
 impl Component for NetworkSSID {
-    fn update(&mut self, buf: &mut String) {
-        let ssid = get_active_ssid();
-        let ssid = ssid.as_deref().unwrap_or("---");
+    async fn update(&mut self, buf: &mut String) {
+        let ssid = get_active_ssid().await;
+        let ssid = ssid.as_deref().unwrap_or(EMPTY_OUTPUT);
 
         buf.clear();
         write!(buf, "{}", ssid).expect("wifi ssid write error");
     }
 }
 
-fn get_active_ssid() -> Option<String> {
-    // TODO: make this faster or non-blocking
+async fn get_active_ssid() -> Option<String> {
     let output = Command::new("nmcli")
         .args(["-t", "-f", "active,ssid", "dev", "wifi"])
         .output()
+        .await
         .ok()?;
 
     String::from_utf8_lossy(&output.stdout)

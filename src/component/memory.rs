@@ -24,7 +24,7 @@ impl Default for RamUsed {
 }
 
 impl Component for RamUsed {
-    fn update(&mut self, buf: &mut String) {
+    async fn update(&mut self, buf: &mut String) {
         self.system
             .refresh_memory_specifics(MemoryRefreshKind::nothing().with_ram());
 

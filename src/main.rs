@@ -1,12 +1,13 @@
 use component::{CpuUsage, DiskUsage, NetworkSSID, RamUsed, Time};
-use executor::Executor;
+use context::Context;
 use std::time::Duration;
 
 mod component;
-mod executor;
+mod context;
 
-fn main() {
-    Executor::new()
+#[tokio::main]
+async fn main() {
+    Context::new()
         .add_static("CPU")
         .add_timed(Duration::from_secs(1), CpuUsage::new())
         .seperator()
@@ -21,5 +22,5 @@ fn main() {
         .seperator()
         .add_static("WIFI")
         .add_timed(Duration::from_secs(3), NetworkSSID)
-        .run();
+        .run().await;
 }

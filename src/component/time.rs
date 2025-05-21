@@ -12,7 +12,7 @@ impl Time {
 }
 
 impl Component for Time {
-    fn update(&mut self, buf: &mut String) {
+    async fn update(&mut self, buf: &mut String) {
         buf.clear();
         chrono::Local::now()
             .format(&self.format)
