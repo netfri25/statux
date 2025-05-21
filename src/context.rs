@@ -64,21 +64,19 @@ impl Context {
         self
     }
 
-    fn update_content(&self) {
-        let mut output = String::new();
-        for comp in self.outputs.iter() {
-            output.push_str(comp.lock().unwrap().as_str());
-            output.push(' ');
-        }
-
-        println!("{}", output)
-    }
-
     pub async fn run(&mut self) {
+        let mut output = String::new();
         loop {
             tokio::time::sleep(MIN_UPDATE_TIME).await;
             self.notify.notified().await;
-            self.update_content();
+
+            output.clear();
+            for comp in self.outputs.iter() {
+                output.push_str(comp.lock().unwrap().as_str());
+                output.push(' ');
+            }
+
+            println!("{}", output)
         }
     }
 }
