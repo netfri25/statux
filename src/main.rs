@@ -12,7 +12,7 @@ fn main() {
             .add_timed(Duration::from_secs(1), CpuUsage::new())
             .seperator()
             .add_static("RAM")
-            .add_timed(Duration::from_secs_f32(0.5), RamUsed::new())
+            .add_timed(Duration::from_secs_f32(0.5), RamUsed)
             .seperator()
             .add_static("TIME")
             .add_timed(Duration::from_secs(5), Time::new("%S"))
