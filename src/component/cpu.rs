@@ -38,7 +38,7 @@ impl Component for CpuUsage {
 
         self.prev = Some(current);
         buf.clear();
-        write!(buf, "{:2.1}%", usage).expect("cpu usage write error");
+        write!(buf, "{:4.1}%", usage).expect("cpu usage write error");
     }
 }
 
