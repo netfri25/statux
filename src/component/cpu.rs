@@ -26,7 +26,7 @@ impl Component for CpuUsage {
 
         let Some(ref prev) = self.prev else {
             self.prev = Some(current);
-            write!(buf, "{}", EMPTY_OUTPUT).expect("cpu usage write error");
+            write!(buf, " {}", EMPTY_OUTPUT).expect("cpu usage write error");
             return;
         };
 
@@ -38,7 +38,7 @@ impl Component for CpuUsage {
 
         self.prev = Some(current);
         buf.clear();
-        write!(buf, "{:4.1}%", usage).expect("cpu usage write error");
+        write!(buf, "{:4.1}", usage).expect("cpu usage write error");
     }
 }
 

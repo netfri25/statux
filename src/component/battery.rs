@@ -15,7 +15,7 @@ impl Component for BatteryLevel {
         };
 
         let charge = battery().state_of_charge().value * 100.;
-        write!(buf, "{}{:02.1}", state, charge).expect("battery charge write error");
+        write!(buf, "{}{}", state, charge.trunc()).expect("battery charge write error");
     }
 }
 
