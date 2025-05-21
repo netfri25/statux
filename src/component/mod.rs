@@ -3,6 +3,7 @@ pub mod cpu;
 pub mod memory;
 pub mod disk;
 pub mod network;
+pub mod battery;
 
 use std::time::Duration;
 
@@ -11,6 +12,7 @@ pub use cpu::CpuUsage;
 pub use memory::RamUsed;
 pub use disk::DiskUsage;
 pub use network::NetworkSSID;
+pub use battery::{BatteryLevel, BatteryTimeLeft};
 
 pub const EMPTY_OUTPUT: &str = "---";
 pub const MIN_UPDATE_TIME: Duration = Duration::from_millis(100);

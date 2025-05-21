@@ -4,6 +4,7 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
+battery = "0.7.8"
 chrono = { version = "0.4.41", default-features = false, features = ["clock"] }
 nix = { version = "0.30.1", default-features = false, features = ["fs"] }
 tokio = { version = "1.45.0", default-features = false, features = ["fs", "io-util", "process", "rt", "sync", "time"] }

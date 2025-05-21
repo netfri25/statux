@@ -1,4 +1,4 @@
-use component::{CpuUsage, DiskUsage, NetworkSSID, RamUsed, Time};
+use component::{BatteryLevel, BatteryTimeLeft, CpuUsage, DiskUsage, NetworkSSID, RamUsed, Time};
 use context::Context;
 use std::time::Duration;
 
@@ -12,7 +12,7 @@ fn main() {
             .add_timed(Duration::from_secs(1), CpuUsage::new())
             .seperator()
             .add_static("RAM")
-            .add_timed(Duration::from_secs_f32(0.5), RamUsed)
+            .add_timed(Duration::from_secs(5), RamUsed)
             .seperator()
             .add_static("TIME")
             .add_timed(Duration::from_secs(5), Time::new("%S"))
@@ -21,7 +21,13 @@ fn main() {
             .add_timed(Duration::from_secs(30), DiskUsage::new("/"))
             .seperator()
             .add_static("WIFI")
-            .add_timed(Duration::from_secs(3), NetworkSSID)
+            .add_timed(Duration::from_secs(10), NetworkSSID)
+            .seperator()
+            .add_static("LEFT")
+            .add_timed(Duration::from_secs(2), BatteryTimeLeft)
+            .seperator()
+            .add_static("BAT")
+            .add_timed(Duration::from_secs(2), BatteryLevel)
             .run().await;
     };
 
