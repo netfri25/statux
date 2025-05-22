@@ -23,7 +23,12 @@ fn get_volume() -> Option<i64> {
     let selem = mixer.find_selem(&SelemId::new("Master", 0))?;
     let (min, max) = selem.get_playback_volume_range();
     // front left is common. most systems only expose front-left + front-right
-    let vol = selem.get_playback_volume(SelemChannelId::FrontLeft).ok()?;
+    let channel = SelemChannelId::FrontLeft;
+    let vol = selem.get_playback_volume(channel).ok()?;
+    let muted = selem.get_playback_switch(channel).ok()? == 0;
+    if muted {
+        return None
+    }
     let range = max - min;
     let percent = ((vol - min) * 100 + range / 2) / range;
     Some(percent)
