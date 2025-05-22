@@ -5,18 +5,27 @@ use nix::libc::{SIGRTMIN, c_int};
 use tokio::signal::unix as signal;
 use tokio::sync::Notify;
 use tokio::{select, task};
+use x11rb::connection::Connection;
+use x11rb::protocol::xproto::{AtomEnum, PropMode};
+use x11rb::rust_connection::RustConnection;
+use x11rb::wrapper::ConnectionExt;
 
 use crate::component::{Component, EMPTY_OUTPUT, MIN_UPDATE_TIME};
 
-#[derive(Default)]
 pub struct Context {
     outputs: Vec<Arc<Mutex<String>>>,
+    tasks: Vec<task::JoinHandle<()>>,
     notify: Arc<Notify>,
+    conn: RustConnection,
 }
 
 impl Context {
     pub fn new() -> Self {
-        Self::default()
+        let outputs = Default::default();
+        let tasks = Default::default();
+        let notify = Default::default();
+        let (conn, _) = RustConnection::connect(None).unwrap();
+        Self { outputs, tasks, notify, conn }
     }
 
     fn create_output(&mut self) -> Weak<Mutex<String>> {
@@ -32,7 +41,7 @@ impl Context {
 
         let output = self.create_output();
         let notify = self.notify.clone();
-        task::spawn(async move {
+        self.spawn(async move {
             let mut next_update;
             loop {
                 let mut temp = String::new();
@@ -60,7 +69,7 @@ impl Context {
     ) -> &mut Self {
         let output = self.create_output();
         let notify = self.notify.clone();
-        task::spawn(async move {
+        self.spawn(async move {
             let mut next_update;
             loop {
                 let mut temp = String::new();
@@ -85,7 +94,7 @@ impl Context {
     /// adds a component that only updates once
     pub fn add_static(&mut self, mut component: impl Component + Send + 'static) -> &mut Self {
         let output = self.create_output();
-        task::spawn(async move {
+        self.spawn(async move {
             let mut temp = String::new();
             component.update(&mut temp).await;
             let Some(output) = output.upgrade() else {
@@ -97,11 +106,54 @@ impl Context {
         self
     }
 
-    pub async fn run(&self) {
+    fn spawn(&mut self, fut: impl Future<Output = ()> + Send + 'static) {
+        let handle = task::spawn(fut);
+        self.tasks.push(handle);
+    }
+
+    fn update(&self, name: &str) {
+        let screens = &self.conn.setup().roots;
+        for screen in screens {
+            self.conn.change_property8(
+                PropMode::REPLACE,
+                screen.root,
+                AtomEnum::WM_NAME,
+                AtomEnum::STRING,
+                name.as_bytes(),
+            ).ok();
+        }
+
+        self.conn.flush().ok();
+    }
+
+    fn cleanup(&mut self) {
+        self.tasks.iter().for_each(|task| task.abort());
+
+        let screens = &self.conn.setup().roots;
+        for screen in screens {
+            self.conn.change_property8(
+                PropMode::REPLACE,
+                screen.root,
+                AtomEnum::WM_NAME,
+                AtomEnum::STRING,
+                &[],
+            ).ok();
+        }
+
+        self.conn.flush().ok();
+    }
+
+    pub async fn run(&mut self) {
         let mut output = String::new();
         loop {
             tokio::time::sleep(MIN_UPDATE_TIME).await;
-            self.notify.notified().await;
+            select! {
+                _ = self.notify.notified() => {},
+                _ = tokio::signal::ctrl_c() => {
+                    self.cleanup();
+                    break;
+                }
+            }
 
             output.clear();
             for comp in self.outputs.iter() {
@@ -109,7 +161,7 @@ impl Context {
                 output.push(' ');
             }
 
-            println!("{}", output)
+            self.update(&output);
         }
     }
 }
