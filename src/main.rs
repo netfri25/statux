@@ -1,4 +1,4 @@
-use component::{BatteryLevel, BatteryTimeLeft, CpuUsage, DiskUsage, NetworkSSID, RamUsed, Time, Volume};
+use component::{BatteryLevel, BatteryTimeLeft, CpuUsage, DiskUsage, NetworkSSID, Playing, RamUsed, Time, Volume};
 use context::Context;
 use std::time::Duration;
 
@@ -6,10 +6,13 @@ mod component;
 mod context;
 
 const VOLUME_SIGNAL: u8 = 1;
+const PLAYING_SIGNAL: u8 = 2;
 
 fn main() {
     let body = async {
         Context::new()
+            .add_timed_signal(PLAYING_SIGNAL, Duration::from_secs(5), Playing)
+            .seperator()
             .add_static("CPU")
             .add_timed(Duration::from_secs(1), CpuUsage::new())
             .seperator()
