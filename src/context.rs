@@ -161,7 +161,7 @@ impl Context {
                 output.push(' ');
             }
 
-            self.update(&output);
+            self.update(&output[..output.len().checked_sub(1).unwrap_or_default()]);
         }
     }
 }
