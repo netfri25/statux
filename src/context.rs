@@ -128,19 +128,7 @@ impl Context {
 
     fn cleanup(&mut self) {
         self.tasks.iter().for_each(|task| task.abort());
-
-        let screens = &self.conn.setup().roots;
-        for screen in screens {
-            self.conn.change_property8(
-                PropMode::REPLACE,
-                screen.root,
-                AtomEnum::WM_NAME,
-                AtomEnum::STRING,
-                &[],
-            ).ok();
-        }
-
-        self.conn.flush().ok();
+        self.update("");
     }
 
     pub async fn run(&mut self) {
