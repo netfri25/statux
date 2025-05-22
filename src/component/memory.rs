@@ -26,12 +26,18 @@ async fn get_used_bytes() -> Option<u64> {
     let line = lines.next_line().await.ok()??;
     let mem_total: u64 = line.strip_prefix("MemTotal:")?.split_whitespace().next()?.parse().ok()?;
 
+    let line = lines.next_line().await.ok()??;
+    let mem_free: u64 = line.strip_prefix("MemFree:")?.split_whitespace().next()?.parse().ok()?;
+
     lines.next_line().await.ok()??;
 
     let line = lines.next_line().await.ok()??;
-    let mem_available: u64 = line.strip_prefix("MemAvailable:")?.split_whitespace().next()?.parse().ok()?;
+    let buffers: u64 = line.strip_prefix("Buffers:")?.split_whitespace().next()?.parse().ok()?;
 
-    Some(1024 * (mem_total - mem_available))
+    let line = lines.next_line().await.ok()??;
+    let cached: u64 = line.strip_prefix("Cached:")?.split_whitespace().next()?.parse().ok()?;
+
+    Some(1024 * (mem_total - mem_free - buffers - cached))
 }
 
 fn max_unit(bytes: u64) -> (u64, &'static str) {
