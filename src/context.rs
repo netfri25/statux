@@ -1,8 +1,10 @@
 use std::sync::{Arc, Mutex, Weak};
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
+use nix::libc::{SIGRTMIN, c_int};
+use tokio::signal::unix as signal;
 use tokio::sync::Notify;
-use tokio::task;
+use tokio::{select, task};
 
 use crate::component::{Component, EMPTY_OUTPUT, MIN_UPDATE_TIME};
 
@@ -24,7 +26,10 @@ impl Context {
         weak
     }
 
-    pub fn add_timed(&mut self, interval: Duration, mut component: impl Component + Send + 'static) -> &mut Self {
+    pub fn add_timed_signal(&mut self, signal_num: u8, interval: Duration, mut component: impl Component + Send + 'static) -> &mut Self {
+        let kind = custom_signal(signal_num);
+        let mut handler = signal::signal(kind).unwrap();
+
         let output = self.create_output();
         let notify = self.notify.clone();
         task::spawn(async move {
@@ -33,7 +38,35 @@ impl Context {
                 let mut temp = String::new();
                 component.update(&mut temp).await;
                 let Some(output) = output.upgrade() else {
-                    break
+                    break;
+                };
+                *output.lock().unwrap() = temp;
+                notify.notify_one();
+                next_update = next_system_time(interval);
+                select! {
+                    _ = handler.recv() => {}
+                    _ = sleep_until(next_update) => {}
+                }
+            }
+        });
+
+        self
+    }
+
+    pub fn add_timed(
+        &mut self,
+        interval: Duration,
+        mut component: impl Component + Send + 'static,
+    ) -> &mut Self {
+        let output = self.create_output();
+        let notify = self.notify.clone();
+        task::spawn(async move {
+            let mut next_update;
+            loop {
+                let mut temp = String::new();
+                component.update(&mut temp).await;
+                let Some(output) = output.upgrade() else {
+                    break;
                 };
                 *output.lock().unwrap() = temp;
                 notify.notify_one();
@@ -56,7 +89,7 @@ impl Context {
             let mut temp = String::new();
             component.update(&mut temp).await;
             let Some(output) = output.upgrade() else {
-                return
+                return;
             };
             *output.lock().unwrap() = temp;
         });
@@ -64,7 +97,7 @@ impl Context {
         self
     }
 
-    pub async fn run(&mut self) {
+    pub async fn run(&self) {
         let mut output = String::new();
         loop {
             tokio::time::sleep(MIN_UPDATE_TIME).await;
@@ -79,6 +112,10 @@ impl Context {
             println!("{}", output)
         }
     }
+}
+
+fn custom_signal(signal: u8) -> signal::SignalKind {
+    signal::SignalKind::from_raw(SIGRTMIN() + signal as c_int)
 }
 
 fn next_system_time(interval: Duration) -> SystemTime {
@@ -97,7 +134,7 @@ async fn sleep_until(time: SystemTime) {
     loop {
         let now = SystemTime::now();
         if now >= time {
-            break
+            break;
         }
 
         let delta = time.duration_since(now).unwrap_or_default();

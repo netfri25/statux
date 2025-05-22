@@ -1,9 +1,11 @@
-use component::{BatteryLevel, BatteryTimeLeft, CpuUsage, DiskUsage, NetworkSSID, RamUsed, Time};
+use component::{BatteryLevel, BatteryTimeLeft, CpuUsage, DiskUsage, NetworkSSID, RamUsed, Time, Volume};
 use context::Context;
 use std::time::Duration;
 
 mod component;
 mod context;
+
+const VOLUME_SIGNAL: u8 = 1;
 
 fn main() {
     let body = async {
@@ -16,6 +18,9 @@ fn main() {
             .seperator()
             .add_static("RAM")
             .add_timed(Duration::from_secs(5), RamUsed)
+            .seperator()
+            .add_static("VOL")
+            .add_timed_signal(VOLUME_SIGNAL, Duration::from_secs(10), Volume)
             .seperator()
             .add_static("WIFI")
             .add_timed(Duration::from_secs(10), NetworkSSID)
