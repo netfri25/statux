@@ -18,7 +18,7 @@ macro_rules! label {
 fn main() {
     let body = async {
         Context::new()
-            .add_timed_signal(PLAYING_SIGNAL, Duration::from_secs(5), Playing)
+            .add_timed_signal(PLAYING_SIGNAL, Duration::from_secs(1), Playing)
             .seperator()
             .add_static(label!("CPU"))
             .add_timed(Duration::from_secs(1), CpuUsage::new())
