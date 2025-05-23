@@ -12,11 +12,8 @@ impl Time {
 }
 
 impl Component for Time {
-    async fn update(&mut self, buf: &mut String) {
-        buf.clear();
-        chrono::Local::now()
-            .format(&self.format)
-            .write_to(buf)
-            .expect("unable to format");
+    async fn update(&mut self, buf: &mut String) -> anyhow::Result<()> {
+        chrono::Local::now().format(&self.format).write_to(buf)?;
+        Ok(())
     }
 }

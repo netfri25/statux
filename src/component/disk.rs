@@ -15,13 +15,13 @@ impl DiskUsage {
 }
 
 impl Component for DiskUsage {
-    async fn update(&mut self, buf: &mut String) {
-        let stat = nix::sys::statvfs::statvfs(self.path.as_ref()).expect("disk usage error");
+    async fn update(&mut self, buf: &mut String) -> anyhow::Result<()> {
+        let stat = nix::sys::statvfs::statvfs(self.path.as_ref())?;
 
         let usage = 1. - stat.blocks_available() as f32 / stat.blocks() as f32;
         let usage = 100. * usage;
 
-        buf.clear();
-        write!(buf, "{:2.1}%", usage).expect("disk usage write error");
+        write!(buf, "{:2.1}%", usage)?;
+        Ok(())
     }
 }

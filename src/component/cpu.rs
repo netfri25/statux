@@ -21,13 +21,13 @@ impl CpuUsage {
 }
 
 impl Component for CpuUsage {
-    async fn update(&mut self, buf: &mut String) {
-        let current = get_cpu_time().await.expect("unable to get cpu times");
+    async fn update(&mut self, buf: &mut String) -> anyhow::Result<()> {
+        let current = get_cpu_time().await?;
 
         let Some(ref prev) = self.prev else {
             self.prev = Some(current);
-            write!(buf, " {}", EMPTY_OUTPUT).expect("cpu usage write error");
-            return;
+            write!(buf, " {}", EMPTY_OUTPUT)?;
+            return Ok(())
         };
 
         let current_total = current.idle + current.active;
@@ -37,32 +37,32 @@ impl Component for CpuUsage {
         let usage = 100 * active_diff / total_diff;
 
         self.prev = Some(current);
-        buf.clear();
-        write!(buf, "{:2}", usage).expect("cpu usage write error");
+        write!(buf, "{:2}", usage)?;
+        Ok(())
     }
 }
 
-async fn get_cpu_time() -> Option<CpuTime> {
-    let file = tokio::fs::File::open("/proc/stat").await.ok()?;
+async fn get_cpu_time() -> anyhow::Result<CpuTime> {
+    let file = tokio::fs::File::open("/proc/stat").await?;
     let reader = tokio::io::BufReader::new(file);
     let mut lines = reader.lines();
 
-    while let Some(line) = lines.next_line().await.ok()? {
+    while let Some(line) = lines.next_line().await? {
         let Some(line) = line.strip_prefix("cpu ") else {
             continue
         };
 
         let mut parts = line.split_whitespace();
-        let user: u64 = parts.next()?.parse().ok()?;
-        let nice: u64 = parts.next()?.parse().ok()?;
-        let system: u64 = parts.next()?.parse().ok()?;
-        let idle: u64 = parts.next()?.parse().ok()?;
+        let user: u64 = parts.next().ok_or_else(|| anyhow::anyhow!("no user cpu-time"))?.parse()?;
+        let nice: u64 = parts.next().ok_or_else(|| anyhow::anyhow!("no nice cpu-time"))?.parse()?;
+        let system: u64 = parts.next().ok_or_else(|| anyhow::anyhow!("no system cpu-time"))?.parse()?;
+        let idle: u64 = parts.next().ok_or_else(|| anyhow::anyhow!("no idle cpu-time"))?.parse()?;
         let iowait: u64 = parts.next().and_then(|s| s.parse().ok()).unwrap_or_default();
 
         let active = user + nice + system;
         let idle = idle + iowait;
-        return Some(CpuTime { active, idle })
+        return Ok(CpuTime { active, idle })
     }
 
-    None
+    anyhow::bail!("unable to get cpu-time")
 }

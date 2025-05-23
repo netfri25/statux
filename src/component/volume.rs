@@ -8,13 +8,14 @@ use super::{Component, EMPTY_OUTPUT};
 pub struct Volume;
 
 impl Component for Volume {
-    async fn update(&mut self, buf: &mut String) {
-        buf.clear();
+    async fn update(&mut self, buf: &mut String) -> anyhow::Result<()> {
         if let Some(volume) = get_volume() {
-            write!(buf, "{:2}%", volume).expect("volume write error");
+            write!(buf, "{:2}%", volume)?;
         } else {
-            write!(buf, "{}", EMPTY_OUTPUT).expect("volume write error");
+            write!(buf, "{}", EMPTY_OUTPUT)?;
         }
+
+        Ok(())
     }
 }
 

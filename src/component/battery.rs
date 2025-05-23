@@ -1,29 +1,31 @@
 use std::fmt::Write;
 
-use battery::{Manager, Battery, State};
+use battery::{Battery, Manager, State};
 
 use super::{Component, EMPTY_OUTPUT};
 
 pub struct BatteryLevel;
 
 impl Component for BatteryLevel {
-    async fn update(&mut self, buf: &mut String) {
-        let state = match battery().state() {
+    async fn update(&mut self, buf: &mut String) -> anyhow::Result<()> {
+        let battery = battery()?;
+        let state = match battery.state() {
             State::Charging => '+',
             State::Discharging => '-',
             _ => 'o',
         };
 
-        let charge = battery().state_of_charge().value * 100.;
-        write!(buf, "{}{}", state, charge.trunc()).expect("battery charge write error");
+        let charge = battery.state_of_charge().value * 100.;
+        write!(buf, "{}{}", state, charge.trunc())?;
+        Ok(())
     }
 }
 
 pub struct BatteryTimeLeft;
 
 impl Component for BatteryTimeLeft {
-    async fn update(&mut self, buf: &mut String) {
-        let battery = battery();
+    async fn update(&mut self, buf: &mut String) -> anyhow::Result<()> {
+        let battery = battery()?;
         let state = battery.state();
         let time_left = match state {
             State::Charging => battery.time_to_full(),
@@ -35,16 +37,22 @@ impl Component for BatteryTimeLeft {
             let hours = time_left.value / 3600.;
             let minutes = hours.fract() * 60.;
             if hours > 0. {
-                write!(buf, "{}h ", hours.trunc()).expect("battery hours left write error");
+                write!(buf, "{}h ", hours.trunc())?;
             }
 
-            write!(buf, "{:02}m", minutes.trunc()).expect("battery time left write error");
+            write!(buf, "{:02}m", minutes.trunc())?;
         } else {
-            write!(buf, "{}", EMPTY_OUTPUT).expect("battery time left write error");
+            write!(buf, "{}", EMPTY_OUTPUT)?;
         }
+
+        Ok(())
     }
 }
 
-fn battery() -> Battery {
-    Manager::new().unwrap().batteries().unwrap().next().unwrap().unwrap()
+fn battery() -> anyhow::Result<Battery> {
+    let battery = Manager::new()?
+        .batteries()?
+        .next()
+        .ok_or_else(|| anyhow::anyhow!("no battery"))??;
+    Ok(battery)
 }

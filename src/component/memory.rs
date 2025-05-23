@@ -7,37 +7,48 @@ use super::Component;
 pub struct RamUsed;
 
 impl Component for RamUsed {
-    async fn update(&mut self, buf: &mut String) {
-        let used_bytes = get_used_bytes().await.expect("unable to get used bytes");
+    async fn update(&mut self, buf: &mut String) -> anyhow::Result<()> {
+        let used_bytes = get_used_bytes().await?;
 
         let (unit_bytes, unit) = max_unit(used_bytes);
         let used = used_bytes as f32 / unit_bytes as f32;
 
-        buf.clear();
-        write!(buf, "{:2.1} {}", used, unit).expect("ram usage write error")
+        write!(buf, "{:2.1} {}", used, unit)?;
+        Ok(())
     }
 }
 
-async fn get_used_bytes() -> Option<u64> {
-    let file = tokio::fs::File::open("/proc/meminfo").await.ok()?;
+fn parse_field(line: &str, field: &str) -> anyhow::Result<u64> {
+    let output = line.strip_prefix(field)
+        .ok_or_else(|| anyhow::anyhow!("incorrect field {}", field))?
+        .split_whitespace()
+        .next()
+        .ok_or_else(|| anyhow::anyhow!("missing value part"))?
+        .parse()?;
+    Ok(output)
+}
+
+async fn get_used_bytes() -> anyhow::Result<u64> {
+    let file = tokio::fs::File::open("/proc/meminfo").await?;
     let reader = tokio::io::BufReader::new(file);
     let mut lines = reader.lines();
 
-    let line = lines.next_line().await.ok()??;
-    let mem_total: u64 = line.strip_prefix("MemTotal:")?.split_whitespace().next()?.parse().ok()?;
+    let line = lines.next_line().await?.ok_or_else(|| anyhow::anyhow!("missing line"))?;
+    let mem_total = parse_field(&line, "MemTotal:")?;
 
-    let line = lines.next_line().await.ok()??;
-    let mem_free: u64 = line.strip_prefix("MemFree:")?.split_whitespace().next()?.parse().ok()?;
+    let line = lines.next_line().await?.ok_or_else(|| anyhow::anyhow!("missing line"))?;
+    let mem_free = parse_field(&line, "MemFree:")?;
 
-    lines.next_line().await.ok()??;
+    lines.next_line().await.ok();
 
-    let line = lines.next_line().await.ok()??;
-    let buffers: u64 = line.strip_prefix("Buffers:")?.split_whitespace().next()?.parse().ok()?;
+    let line = lines.next_line().await?.ok_or_else(|| anyhow::anyhow!("missing line"))?;
+    let buffers = parse_field(&line, "Buffers:")?;
 
-    let line = lines.next_line().await.ok()??;
-    let cached: u64 = line.strip_prefix("Cached:")?.split_whitespace().next()?.parse().ok()?;
+    let line = lines.next_line().await?.ok_or_else(|| anyhow::anyhow!("missing line"))?;
+    let cached = parse_field(&line, "Cached:")?;
 
-    Some(1024 * (mem_total - mem_free - buffers - cached))
+    let total_bytes = 1024 * (mem_total - mem_free - buffers - cached);
+    Ok(total_bytes)
 }
 
 fn max_unit(bytes: u64) -> (u64, &'static str) {

@@ -43,14 +43,20 @@ impl Context {
         let notify = self.notify.clone();
         self.spawn(async move {
             let mut next_update;
+            let mut temp = String::new();
             loop {
-                let mut temp = String::new();
-                component.update(&mut temp).await;
-                let Some(output) = output.upgrade() else {
-                    break;
-                };
-                *output.lock().unwrap() = temp;
-                notify.notify_one();
+                temp.clear();
+                if let Err(err) = component.update(&mut temp).await {
+                    eprintln!("component error: {}", err);
+                } else {
+                    let Some(output) = output.upgrade() else {
+                        break;
+                    };
+
+                    output.lock().unwrap().clone_from(&temp);
+                    notify.notify_one();
+                }
+
                 next_update = next_system_time(interval);
                 select! {
                     _ = handler.recv() => {}
@@ -71,14 +77,19 @@ impl Context {
         let notify = self.notify.clone();
         self.spawn(async move {
             let mut next_update;
+            let mut temp = String::new();
             loop {
-                let mut temp = String::new();
-                component.update(&mut temp).await;
-                let Some(output) = output.upgrade() else {
-                    break;
-                };
-                *output.lock().unwrap() = temp;
-                notify.notify_one();
+                temp.clear();
+                if let Err(err) = component.update(&mut temp).await {
+                    eprintln!("component error: {}", err);
+                } else {
+                    let Some(output) = output.upgrade() else {
+                        break;
+                    };
+                    output.lock().unwrap().clone_from(&temp);
+                    notify.notify_one();
+                }
+
                 next_update = next_system_time(interval);
                 sleep_until(next_update).await;
             }
@@ -96,10 +107,15 @@ impl Context {
         let output = self.create_output();
         self.spawn(async move {
             let mut temp = String::new();
-            component.update(&mut temp).await;
+            while let Err(err) = component.update(&mut temp).await {
+                eprintln!("component error: {}", err);
+                tokio::time::sleep(MIN_UPDATE_TIME).await;
+            }
+
             let Some(output) = output.upgrade() else {
                 return;
             };
+
             *output.lock().unwrap() = temp;
         });
 
@@ -160,6 +176,8 @@ fn custom_signal(signal: u8) -> signal::SignalKind {
 
 fn next_system_time(interval: Duration) -> SystemTime {
     let now = SystemTime::now();
+    // will only fail after 03:14:07 on 19 Jan 2038, so it's "safe" to `.unwrap()`
+    // https://en.wikipedia.org/wiki/Year_2038_problem
     let elapsed = now.duration_since(UNIX_EPOCH).unwrap().as_nanos();
     let interval = interval.as_nanos();
 

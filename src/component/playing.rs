@@ -7,24 +7,22 @@ use super::Component;
 pub struct Playing;
 
 impl Component for Playing {
-    async fn update(&mut self, buf: &mut String) {
-        const ERROR: &str = "playing write error";
-
-        buf.clear();
+    async fn update(&mut self, buf: &mut String) -> anyhow::Result<()> {
         let Some((metadata, status)) = get_metadata() else {
-            write!(buf, "[]").expect(ERROR);
-            return;
+            write!(buf, "[]")?;
+            return Ok(());
         };
 
-        write!(buf, "[").expect(ERROR);
+        write!(buf, "[")?;
         if status != PlaybackStatus::Playing {
-            write!(buf, "^c#666666^").expect(ERROR);
+            write!(buf, "^c#666666^")?;
         }
 
         let artists = metadata.artists().map(|artists| artists.join(", ")).unwrap_or_default();
         let title = metadata.title().unwrap_or_default();
-        write!(buf, "{} - {}", artists, title).expect(ERROR);
-        write!(buf, "^d^]").expect(ERROR);
+        write!(buf, "{} - {}", artists, title)?;
+        write!(buf, "^d^]")?;
+        Ok(())
     }
 }
 
