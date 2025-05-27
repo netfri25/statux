@@ -19,7 +19,11 @@ pub use volume::Volume;
 pub use playing::Playing;
 
 pub const EMPTY_OUTPUT: &str = "---";
-pub const MIN_UPDATE_TIME: Duration = Duration::from_millis(100);
+
+// NOTE: this exist for the purpose of dealing with system suspend. since tokio::time::sleep
+//       doesn't consider system suspension, the minimum time that the sleep function is allowed to
+//       sleep is the time defined here, and by that we get a maximum error of 10s, which is reasonable.
+pub const MIN_UPDATE_TIME: Duration = Duration::from_secs(10);
 
 pub trait Component {
     fn update(&mut self, buf: &mut String) -> impl Future<Output = anyhow::Result<()>> + Send;
