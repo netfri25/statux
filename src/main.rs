@@ -40,7 +40,7 @@ fn main() {
             .seperator()
             .add_static(label!("TIME"))
             .add_timed(Schedule::every().min(), Time::new("%H:%M"))
-            .add_timed(Schedule::every().sec(), Time::new("%Ss"))
+            .add_timed(Schedule::every().day(), Time::new("%a"))
             .add_timed(Schedule::every().day(), Time::new("%d/%m"))
             .seperator()
             .add_static(label!("LEFT"))
