@@ -1,5 +1,4 @@
 use std::sync::{Arc, Mutex, Weak};
-use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
 use nix::libc::{SIGRTMIN, c_int};
 use tokio::signal::unix as signal;
@@ -11,6 +10,7 @@ use x11rb::rust_connection::RustConnection;
 use x11rb::wrapper::ConnectionExt;
 
 use crate::component::{Component, EMPTY_OUTPUT, MIN_UPDATE_TIME};
+use crate::schedule::Schedule;
 
 pub struct Context {
     outputs: Vec<Arc<Mutex<String>>>,
@@ -25,7 +25,12 @@ impl Context {
         let tasks = Default::default();
         let notify = Default::default();
         let (conn, _) = RustConnection::connect(None).unwrap();
-        Self { outputs, tasks, notify, conn }
+        Self {
+            outputs,
+            tasks,
+            notify,
+            conn,
+        }
     }
 
     fn create_output(&mut self) -> Weak<Mutex<String>> {
@@ -35,13 +40,16 @@ impl Context {
         weak
     }
 
-    pub fn add_timed_signal(&mut self, signal_num: u8, interval: Duration, mut component: impl Component + Send + 'static) -> &mut Self {
+    pub fn add_timed_signal(
+        &mut self,
+        signal_num: u8,
+        interval: Schedule,
+        mut component: impl Component + Send + 'static,
+    ) -> &mut Self {
         let kind = custom_signal(signal_num);
         let mut handler = signal::signal(kind).unwrap();
 
-        let output = self.create_output();
-        let notify = self.notify.clone();
-        self.spawn(async move {
+        self.spawn(|output, notify| async move {
             let mut next_update;
             let mut temp = String::new();
             loop {
@@ -57,7 +65,7 @@ impl Context {
                     notify.notify_one();
                 }
 
-                next_update = next_system_time(interval);
+                next_update = interval.after(chrono::Local::now());
                 select! {
                     _ = handler.recv() => {}
                     _ = sleep_until(next_update) => {}
@@ -70,12 +78,10 @@ impl Context {
 
     pub fn add_timed(
         &mut self,
-        interval: Duration,
+        interval: Schedule,
         mut component: impl Component + Send + 'static,
     ) -> &mut Self {
-        let output = self.create_output();
-        let notify = self.notify.clone();
-        self.spawn(async move {
+        self.spawn(|output, notify| async move {
             let mut next_update;
             let mut temp = String::new();
             loop {
@@ -90,7 +96,7 @@ impl Context {
                     notify.notify_one();
                 }
 
-                next_update = next_system_time(interval);
+                next_update = interval.after(chrono::Local::now());
                 sleep_until(next_update).await;
             }
         });
@@ -104,8 +110,7 @@ impl Context {
 
     /// adds a component that only updates once
     pub fn add_static(&mut self, mut component: impl Component + Send + 'static) -> &mut Self {
-        let output = self.create_output();
-        self.spawn(async move {
+        self.spawn(|output, notify| async move {
             let mut temp = String::new();
             while let Err(err) = component.update(&mut temp).await {
                 eprintln!("component error: {}", err);
@@ -117,26 +122,35 @@ impl Context {
             };
 
             *output.lock().unwrap() = temp;
+            notify.notify_one();
         });
 
         self
     }
 
-    fn spawn(&mut self, fut: impl Future<Output = ()> + Send + 'static) {
-        let handle = task::spawn(fut);
+    fn spawn<Func, Fut>(&mut self, callback: Func)
+    where
+        Func: FnOnce(Weak<Mutex<String>>, Arc<Notify>) -> Fut,
+        Fut: Future<Output = ()> + Send + 'static,
+    {
+        let output = self.create_output();
+        let notify = self.notify.clone();
+        let handle = task::spawn(callback(output, notify));
         self.tasks.push(handle);
     }
 
     fn update(&self, name: &str) {
         let screens = &self.conn.setup().roots;
         for screen in screens {
-            self.conn.change_property8(
-                PropMode::REPLACE,
-                screen.root,
-                AtomEnum::WM_NAME,
-                AtomEnum::STRING,
-                name.as_bytes(),
-            ).ok();
+            self.conn
+                .change_property8(
+                    PropMode::REPLACE,
+                    screen.root,
+                    AtomEnum::WM_NAME,
+                    AtomEnum::STRING,
+                    name.as_bytes(),
+                )
+                .ok();
         }
 
         self.conn.flush().ok();
@@ -150,7 +164,6 @@ impl Context {
     pub async fn run(&mut self) {
         let mut output = String::new();
         loop {
-            tokio::time::sleep(MIN_UPDATE_TIME).await;
             select! {
                 _ = self.notify.notified() => {},
                 _ = tokio::signal::ctrl_c() => {
@@ -174,28 +187,14 @@ fn custom_signal(signal: u8) -> signal::SignalKind {
     signal::SignalKind::from_raw(SIGRTMIN() + signal as c_int)
 }
 
-fn next_system_time(interval: Duration) -> SystemTime {
-    let now = SystemTime::now();
-    // will only fail after 03:14:07 on 19 Jan 2038, so it's "safe" to `.unwrap()`
-    // https://en.wikipedia.org/wiki/Year_2038_problem
-    let elapsed = now.duration_since(UNIX_EPOCH).unwrap().as_nanos();
-    let interval = interval.as_nanos();
-
-    let next = elapsed.next_multiple_of(interval);
-
-    let secs = (next / 1_000_000_000) as u64;
-    let nanos = (next % 1_000_000_000) as u32;
-    UNIX_EPOCH + Duration::new(secs, nanos)
-}
-
-async fn sleep_until(time: SystemTime) {
+async fn sleep_until(time: chrono::DateTime<chrono::Local>) {
     loop {
-        let now = SystemTime::now();
+        let now = chrono::Local::now();
         if now >= time {
             break;
         }
 
-        let delta = time.duration_since(now).unwrap_or_default();
+        let delta = (time - now).to_std().unwrap_or_default();
 
         tokio::time::sleep(MIN_UPDATE_TIME.min(delta)).await;
     }

@@ -1,9 +1,12 @@
-use component::{BatteryLevel, BatteryTimeLeft, CpuUsage, DiskUsage, NetworkSSID, Playing, RamUsed, Time, Volume};
+use component::{
+    BatteryLevel, BatteryTimeLeft, CpuUsage, DiskUsage, NetworkSSID, Playing, RamUsed, Time, Volume,
+};
 use context::Context;
-use std::time::Duration;
+use schedule::Schedule;
 
 mod component;
 mod context;
+mod schedule;
 
 const VOLUME_SIGNAL: u8 = 1;
 const PLAYING_SIGNAL: u8 = 2;
@@ -12,39 +15,41 @@ macro_rules! label {
     ($name:tt) => {
         // #define YELLOW(x) "^c#888811^" x "^d^"
         concat!("^c#888811^", $name, "^d^")
-    }
+    };
 }
 
 fn main() {
     let body = async {
         Context::new()
-            .add_timed_signal(PLAYING_SIGNAL, Duration::from_secs(1), Playing)
+            .add_timed_signal(PLAYING_SIGNAL, Schedule::every().sec(), Playing)
             .seperator()
             .add_static(label!("CPU"))
-            .add_timed(Duration::from_secs(1), CpuUsage::new())
+            .add_timed(Schedule::every().sec(), CpuUsage::new())
             .seperator()
             .add_static(label!("DISK"))
-            .add_timed(Duration::from_secs(30), DiskUsage::new("/"))
+            .add_timed(Schedule::every().secs(30), DiskUsage::new("/"))
             .seperator()
             .add_static(label!("RAM"))
-            .add_timed(Duration::from_secs(5), RamUsed)
+            .add_timed(Schedule::every().secs(5), RamUsed)
             .seperator()
             .add_static(label!("VOL"))
-            .add_timed_signal(VOLUME_SIGNAL, Duration::from_secs(10), Volume)
+            .add_timed_signal(VOLUME_SIGNAL, Schedule::every().secs(10), Volume)
             .seperator()
             .add_static(label!("WIFI"))
-            .add_timed(Duration::from_secs(10), NetworkSSID)
+            .add_timed(Schedule::every().secs(10), NetworkSSID)
             .seperator()
             .add_static(label!("TIME"))
-            .add_timed(Duration::from_secs(60), Time::new("%H:%M"))
-            .add_timed(Duration::from_secs(60 * 60 * 24), Time::new("%d/%m"))
+            .add_timed(Schedule::every().min(), Time::new("%H:%M"))
+            .add_timed(Schedule::every().sec(), Time::new("%Ss"))
+            .add_timed(Schedule::every().day(), Time::new("%d/%m"))
             .seperator()
             .add_static(label!("LEFT"))
-            .add_timed(Duration::from_secs(2), BatteryTimeLeft)
+            .add_timed(Schedule::every().secs(2), BatteryTimeLeft)
             .seperator()
             .add_static(label!("BAT"))
-            .add_timed(Duration::from_secs(2), BatteryLevel)
-            .run().await;
+            .add_timed(Schedule::every().secs(2), BatteryLevel)
+            .run()
+            .await;
     };
 
     tokio::runtime::Builder::new_current_thread()
