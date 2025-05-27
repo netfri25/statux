@@ -35,7 +35,7 @@ impl Component for CpuUsage {
         let prev_total = prev.idle + prev.active;
         let total_diff = current_total - prev_total;
         let active_diff = current.active - prev.active;
-        let usage = 100 * active_diff / total_diff;
+        let usage = 100 * active_diff / total_diff.max(1);
 
         self.prev = Some(current);
         write!(buf, "{:2}", usage)?;
