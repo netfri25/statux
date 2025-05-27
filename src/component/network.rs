@@ -1,3 +1,4 @@
+use anyhow::Context;
 use std::fmt::Write;
 use tokio::process::Command;
 
@@ -25,5 +26,5 @@ async fn get_active_ssid() -> anyhow::Result<String> {
         .lines()
         .find_map(|line| line.strip_prefix("yes:"))
         .map(String::from)
-        .ok_or_else(|| anyhow::anyhow!("no active ssid"))
+        .context("no active ssid")
 }

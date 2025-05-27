@@ -18,7 +18,10 @@ impl Component for Playing {
             write!(buf, "^c#666666^")?;
         }
 
-        let artists = metadata.artists().map(|artists| artists.join(", ")).unwrap_or_default();
+        let artists = metadata
+            .artists()
+            .map(|artists| artists.join(", "))
+            .unwrap_or_default();
         let title = metadata.title().unwrap_or_default();
         write!(buf, "{} - {}", artists, title)?;
         write!(buf, "^d^]")?;

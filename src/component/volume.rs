@@ -2,7 +2,6 @@ use alsa::mixer::{Mixer, SelemChannelId, SelemId};
 
 use std::fmt::Write;
 
-
 use super::{Component, EMPTY_OUTPUT};
 
 pub struct Volume;
@@ -28,7 +27,7 @@ fn get_volume() -> Option<i64> {
     let vol = selem.get_playback_volume(channel).ok()?;
     let muted = selem.get_playback_switch(channel).ok()? == 0;
     if muted {
-        return None
+        return None;
     }
     let range = max - min;
     let percent = ((vol - min) * 100 + range / 2) / range;

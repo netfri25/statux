@@ -1,5 +1,6 @@
 use std::fmt::Write;
 
+use anyhow::Context;
 use battery::{Battery, Manager, State};
 
 use super::{Component, EMPTY_OUTPUT};
@@ -53,6 +54,6 @@ fn battery() -> anyhow::Result<Battery> {
     let battery = Manager::new()?
         .batteries()?
         .next()
-        .ok_or_else(|| anyhow::anyhow!("no battery"))??;
+        .context("no battery")??;
     Ok(battery)
 }

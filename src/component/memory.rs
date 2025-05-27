@@ -1,5 +1,6 @@
 use std::fmt::Write;
 
+use anyhow::Context;
 use tokio::io::AsyncBufReadExt;
 
 use super::Component;
@@ -19,11 +20,12 @@ impl Component for RamUsed {
 }
 
 fn parse_field(line: &str, field: &str) -> anyhow::Result<u64> {
-    let output = line.strip_prefix(field)
-        .ok_or_else(|| anyhow::anyhow!("incorrect field {}", field))?
+    let output = line
+        .strip_prefix(field)
+        .with_context(|| format!("incorrect field {}", field))?
         .split_whitespace()
         .next()
-        .ok_or_else(|| anyhow::anyhow!("missing value part"))?
+        .context("missing value part")?
         .parse()?;
     Ok(output)
 }
@@ -33,18 +35,18 @@ async fn get_used_bytes() -> anyhow::Result<u64> {
     let reader = tokio::io::BufReader::new(file);
     let mut lines = reader.lines();
 
-    let line = lines.next_line().await?.ok_or_else(|| anyhow::anyhow!("missing line"))?;
+    let line = lines.next_line().await?.context("missing line")?;
     let mem_total = parse_field(&line, "MemTotal:")?;
 
-    let line = lines.next_line().await?.ok_or_else(|| anyhow::anyhow!("missing line"))?;
+    let line = lines.next_line().await?.context("missing line")?;
     let mem_free = parse_field(&line, "MemFree:")?;
 
     lines.next_line().await.ok();
 
-    let line = lines.next_line().await?.ok_or_else(|| anyhow::anyhow!("missing line"))?;
+    let line = lines.next_line().await?.context("missing line")?;
     let buffers = parse_field(&line, "Buffers:")?;
 
-    let line = lines.next_line().await?.ok_or_else(|| anyhow::anyhow!("missing line"))?;
+    let line = lines.next_line().await?.context("missing line")?;
     let cached = parse_field(&line, "Cached:")?;
 
     let total_bytes = 1024 * (mem_total - mem_free - buffers - cached);

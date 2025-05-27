@@ -1,22 +1,22 @@
-pub mod time;
-pub mod cpu;
-pub mod memory;
-pub mod disk;
-pub mod network;
 pub mod battery;
-pub mod volume;
+pub mod cpu;
+pub mod disk;
+pub mod memory;
+pub mod network;
 pub mod playing;
+pub mod time;
+pub mod volume;
 
 use std::time::Duration;
 
-pub use time::Time;
-pub use cpu::CpuUsage;
-pub use memory::RamUsed;
-pub use disk::DiskUsage;
-pub use network::NetworkSSID;
 pub use battery::{BatteryLevel, BatteryTimeLeft};
-pub use volume::Volume;
+pub use cpu::CpuUsage;
+pub use disk::DiskUsage;
+pub use memory::RamUsed;
+pub use network::NetworkSSID;
 pub use playing::Playing;
+pub use time::Time;
+pub use volume::Volume;
 
 pub const EMPTY_OUTPUT: &str = "---";
 
